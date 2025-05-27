@@ -57,7 +57,9 @@ function splitIntoScenes(text, secondsPerScene = 3) {
 function generatePrompt(text, format) {
   const base = "Cinematic scene, storytelling,";
   const aspect = format === "9:16" ? "vertical frame" : "landscape format";
-  return `${base} ${text}, ${aspect}`;
+  const globalStyle = document.getElementById("styleInput").value.trim();
+  const stylePart = globalStyle ? `, ${globalStyle}` : "";
+  return `${base} ${text}, ${aspect}${stylePart}`;
 }
 
 function translateToRussian(text) {
