@@ -1,11 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Восстановление при загрузке страницы
   document.getElementById("scriptInput").value = localStorage.getItem("script") || "";
   document.getElementById("formatSelect").value = localStorage.getItem("format") || "9:16";
   document.getElementById("styleInput").value = localStorage.getItem("style") || "";
 });
 
-// Основная логика
 function processScript() {
   const script = document.getElementById("scriptInput").value.trim();
   const format = document.getElementById("formatSelect").value;
@@ -17,7 +15,6 @@ function processScript() {
     return;
   }
 
-  // Сохраняем
   localStorage.setItem("script", script);
   localStorage.setItem("format", format);
   localStorage.setItem("style", style);
@@ -136,7 +133,7 @@ function downloadPDF() {
   html2pdf().set(opt).from(element).save();
 }
 
-// 🧲 DRAG AND DROP
+// DRAG & DROP
 function enableDragDrop() {
   const container = document.getElementById("output");
   let dragged;
@@ -159,4 +156,77 @@ function enableDragDrop() {
       }
     });
   });
+}
+
+// JSON EXPORT
+function exportJSON() {
+  const script = document.getElementById("scriptInput").value;
+  const format = document.getElementById("formatSelect").value;
+  const style = document.getElementById("styleInput").value;
+
+  const prompts = [];
+  const blocks = document.querySelectorAll(".scene-block");
+  blocks.forEach((block, index) => {
+    const en = block.querySelector("p:nth-of-type(1)").textContent.replace("EN:", "").trim();
+    const ru = block.querySelector("p:nth-of-type(2)").textContent.replace("RU:", "").trim();
+    const prompt = document.getElementById(`prompt-${index}`)?.value || "";
+    prompts.push({ en, ru, prompt });
+  });
+
+  const jsonData = {
+    script,
+    format,
+    style,
+    scenes: prompts
+  };
+
+  const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "storyboard-project.json";
+  link.click();
+}
+
+// JSON IMPORT
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const json = JSON.parse(e.target.result);
+
+    document.getElementById("scriptInput").value = json.script || "";
+    document.getElementById("formatSelect").value = json.format || "9:16";
+    document.getElementById("styleInput").value = json.style || "";
+
+    localStorage.setItem("script", json.script || "");
+    localStorage.setItem("format", json.format || "9:16");
+    localStorage.setItem("style", json.style || "");
+
+    const output = document.getElementById("output");
+    output.innerHTML = "";
+
+    json.scenes.forEach((scene, index) => {
+      const sceneDiv = document.createElement("div");
+      sceneDiv.className = "scene-block";
+      sceneDiv.setAttribute("draggable", "true");
+
+      sceneDiv.innerHTML = `
+        <h3>Scene ${index + 1}</h3>
+        <p><strong>EN:</strong> ${scene.en}</p>
+        <p><strong>RU:</strong> ${scene.ru}</p>
+        <label><strong>Prompt:</strong></label>
+        <input type="text" id="prompt-${index}" value="${scene.prompt}" style="width: 100%; padding: 6px; margin-top: 5px;" oninput="savePrompt(${index}, this.value)" />
+        <button onclick="generateImage(${index})" style="margin-top: 10px;">🎨 Сгенерировать изображение</button>
+        <input type="file" accept="image/*" onchange="uploadCustomImage(event, ${index})" style="margin-top: 10px;" />
+        <div id="image-${index}" style="margin-top: 10px;"></div>
+      `;
+      output.appendChild(sceneDiv);
+    });
+
+    enableDragDrop();
+  };
+
+  reader.readAsText(file);
 }
