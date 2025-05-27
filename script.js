@@ -8,12 +8,10 @@ function processScript() {
     return;
   }
 
-  const lines = script.split(/\n\n+|\.\s+/);
+  const sceneBlocks = splitIntoScenes(script, 3); // 3 секунды на сцену
   output.innerHTML = "";
 
-  lines.forEach((line, index) => {
-    if (line.trim().length === 0) return;
-
+  sceneBlocks.forEach((line, index) => {
     const prompt = generatePrompt(line, format);
     const sceneDiv = document.createElement("div");
     sceneDiv.className = "scene-block";
@@ -31,6 +29,31 @@ function processScript() {
   });
 }
 
+// 🧠 Авторазбиение на сцены (учитывает длительность речи)
+function splitIntoScenes(text, secondsPerScene = 3) {
+  const words = text.split(/\s+/).length;
+  const wordsPerSecond = 2.2; // средняя скорость речи (~130 слов/мин)
+  const totalSeconds = words / wordsPerSecond;
+  const totalScenes = Math.ceil(totalSeconds / secondsPerScene);
+
+  const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text]; // делим по предложениям
+  const scenes = [];
+  let currentScene = "";
+  let sceneCount = 0;
+  let avgSentencesPerScene = Math.max(1, Math.floor(sentences.length / totalScenes));
+
+  for (let i = 0; i < sentences.length; i++) {
+    currentScene += sentences[i].trim() + " ";
+    if ((i + 1) % avgSentencesPerScene === 0 || i === sentences.length - 1) {
+      scenes.push(currentScene.trim());
+      currentScene = "";
+      sceneCount++;
+    }
+  }
+
+  return scenes;
+}
+
 function generatePrompt(text, format) {
   const base = "Cinematic scene, storytelling,";
   const aspect = format === "9:16" ? "vertical frame" : "landscape format";
@@ -41,7 +64,6 @@ function translateToRussian(text) {
   return "Автоперевод: " + text.split(" ").reverse().join(" ");
 }
 
-// 🔁 Загрузка пользовательского изображения
 function uploadCustomImage(event, index) {
   const file = event.target.files[0];
   const imageContainer = document.getElementById(`image-${index}`);
@@ -55,7 +77,6 @@ function uploadCustomImage(event, index) {
   reader.readAsDataURL(file);
 }
 
-// 🎨 Генерация изображения по prompt
 async function generateImage(index) {
   const promptInput = document.getElementById(`prompt-${index}`);
   const prompt = promptInput.value;
@@ -82,7 +103,6 @@ async function generateImage(index) {
   imageContainer.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius: 10px;" />`;
 }
 
-// 📄 Экспорт PDF
 function downloadPDF() {
   const element = document.getElementById("output");
   const opt = {
