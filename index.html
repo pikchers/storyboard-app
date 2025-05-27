@@ -1,22 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Storyboard App</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 20px;
-        background: #f8f8f8;
-      }
-      h1 {
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Storyboard Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
     <h1>🎬 Storyboard Generator</h1>
-    <p>This is a placeholder for the storyboard app. React/Next version will go here.</p>
-  </body>
+
+    <label for="scriptInput">📜 Paste your script (in English):</label>
+    <textarea id="scriptInput" placeholder="Type or paste script here..."></textarea>
+
+    <label for="formatSelect">🖼 Select format:</label>
+    <select id="formatSelect">
+      <option value="9:16">9:16 (Vertical)</option>
+      <option value="16:9">16:9 (Horizontal)</option>
+    </select>
+
+    <button onclick="processScript()">🧠 Generate Storyboard</button>
+    <button onclick="downloadPDF()" style="margin-left: 10px;">📄 Скачать PDF</button>
+
+    <div id="output" style="margin-top: 20px;"></div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</body>
 </html>
