@@ -102,7 +102,7 @@ async function generateImage(index) {
 
   imageContainer.innerHTML = "⏳ Генерация изображения...";
 
-  const response = await fetch("https://api-inference.huggingface.co/models/CompVis/stable-diffusion-v1-4", {
+  const response = await fetch("https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -133,7 +133,6 @@ function downloadPDF() {
   html2pdf().set(opt).from(element).save();
 }
 
-// DRAG & DROP
 function enableDragDrop() {
   const container = document.getElementById("output");
   let dragged;
@@ -158,7 +157,6 @@ function enableDragDrop() {
   });
 }
 
-// JSON EXPORT
 function exportJSON() {
   const script = document.getElementById("scriptInput").value;
   const format = document.getElementById("formatSelect").value;
@@ -187,7 +185,6 @@ function exportJSON() {
   link.click();
 }
 
-// JSON IMPORT
 function importJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
