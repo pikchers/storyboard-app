@@ -19,7 +19,10 @@
       <option value="16:9">16:9 (Horizontal)</option>
     </select>
 
-    <button onclick="processScript()">🧠 Generate Storyboard</button>
+    <label for="styleInput">🎨 Global style (optional):</label>
+    <input type="text" id="styleInput" placeholder="e.g. in Pixar 3D animation style" />
+
+    <button onclick="processScript()">🧠 Разбить на сцены</button>
     <button onclick="downloadPDF()" style="margin-left: 10px;">📄 Скачать PDF</button>
 
     <div id="output" style="margin-top: 20px;"></div>
