@@ -1,6 +1,15 @@
+document.addEventListener("DOMContentLoaded", () => {
+  // Восстановление при загрузке страницы
+  document.getElementById("scriptInput").value = localStorage.getItem("script") || "";
+  document.getElementById("formatSelect").value = localStorage.getItem("format") || "9:16";
+  document.getElementById("styleInput").value = localStorage.getItem("style") || "";
+});
+
+// Основная логика
 function processScript() {
   const script = document.getElementById("scriptInput").value.trim();
   const format = document.getElementById("formatSelect").value;
+  const style = document.getElementById("styleInput").value.trim();
   const output = document.getElementById("output");
 
   if (!script) {
@@ -8,38 +17,50 @@ function processScript() {
     return;
   }
 
-  const sceneBlocks = splitIntoScenes(script, 3); // 3 секунды на сцену
+  // Сохраняем
+  localStorage.setItem("script", script);
+  localStorage.setItem("format", format);
+  localStorage.setItem("style", style);
+
+  const sceneBlocks = splitIntoScenes(script, 3);
   output.innerHTML = "";
 
   sceneBlocks.forEach((line, index) => {
     const prompt = generatePrompt(line, format);
     const sceneDiv = document.createElement("div");
     sceneDiv.className = "scene-block";
+    sceneDiv.setAttribute("draggable", "true");
+    sceneDiv.dataset.index = index;
+
     sceneDiv.innerHTML = `
       <h3>Scene ${index + 1}</h3>
       <p><strong>EN:</strong> ${line}</p>
       <p><strong>RU:</strong> ${translateToRussian(line)}</p>
       <label><strong>Prompt:</strong></label>
-      <input type="text" id="prompt-${index}" value="${prompt}" style="width: 100%; padding: 6px; margin-top: 5px;" />
+      <input type="text" id="prompt-${index}" value="${prompt}" style="width: 100%; padding: 6px; margin-top: 5px;" oninput="savePrompt(${index}, this.value)" />
       <button onclick="generateImage(${index})" style="margin-top: 10px;">🎨 Сгенерировать изображение</button>
       <input type="file" accept="image/*" onchange="uploadCustomImage(event, ${index})" style="margin-top: 10px;" />
       <div id="image-${index}" style="margin-top: 10px;"></div>
     `;
     output.appendChild(sceneDiv);
   });
+
+  enableDragDrop();
 }
 
-// 🧠 Авторазбиение на сцены (учитывает длительность речи)
+function savePrompt(index, value) {
+  localStorage.setItem(`prompt-${index}`, value);
+}
+
 function splitIntoScenes(text, secondsPerScene = 3) {
   const words = text.split(/\s+/).length;
-  const wordsPerSecond = 2.2; // средняя скорость речи (~130 слов/мин)
+  const wordsPerSecond = 2.2;
   const totalSeconds = words / wordsPerSecond;
   const totalScenes = Math.ceil(totalSeconds / secondsPerScene);
 
-  const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text]; // делим по предложениям
+  const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text];
   const scenes = [];
   let currentScene = "";
-  let sceneCount = 0;
   let avgSentencesPerScene = Math.max(1, Math.floor(sentences.length / totalScenes));
 
   for (let i = 0; i < sentences.length; i++) {
@@ -47,7 +68,6 @@ function splitIntoScenes(text, secondsPerScene = 3) {
     if ((i + 1) % avgSentencesPerScene === 0 || i === sentences.length - 1) {
       scenes.push(currentScene.trim());
       currentScene = "";
-      sceneCount++;
     }
   }
 
@@ -69,11 +89,10 @@ function translateToRussian(text) {
 function uploadCustomImage(event, index) {
   const file = event.target.files[0];
   const imageContainer = document.getElementById(`image-${index}`);
-
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     imageContainer.innerHTML = `<img src="${e.target.result}" alt="Custom Upload" style="max-width:100%; border-radius:10px;" />`;
   };
   reader.readAsDataURL(file);
@@ -84,7 +103,7 @@ async function generateImage(index) {
   const prompt = promptInput.value;
   const imageContainer = document.getElementById(`image-${index}`);
 
-  imageContainer.innerHTML = "⏳ Генерация изображения... (10–20 секунд)";
+  imageContainer.innerHTML = "⏳ Генерация изображения...";
 
   const response = await fetch("https://api-inference.huggingface.co/models/CompVis/stable-diffusion-v1-4", {
     method: "POST",
@@ -102,17 +121,42 @@ async function generateImage(index) {
 
   const blob = await response.blob();
   const imageUrl = URL.createObjectURL(blob);
-  imageContainer.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius: 10px;" />`;
+  imageContainer.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:10px;" />`;
 }
 
 function downloadPDF() {
   const element = document.getElementById("output");
   const opt = {
-    margin:       0.5,
-    filename:     'storyboard.pdf',
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+    margin: 0.5,
+    filename: 'storyboard.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
   };
   html2pdf().set(opt).from(element).save();
+}
+
+// 🧲 DRAG AND DROP
+function enableDragDrop() {
+  const container = document.getElementById("output");
+  let dragged;
+
+  container.querySelectorAll(".scene-block").forEach(block => {
+    block.addEventListener("dragstart", e => {
+      dragged = block;
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    block.addEventListener("dragover", e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    });
+
+    block.addEventListener("drop", e => {
+      e.preventDefault();
+      if (dragged && dragged !== block) {
+        container.insertBefore(dragged, block.nextSibling);
+      }
+    });
+  });
 }
