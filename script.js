@@ -21,8 +21,10 @@ function processScript() {
       <h3>Scene ${index + 1}</h3>
       <p><strong>EN:</strong> ${line}</p>
       <p><strong>RU:</strong> ${translateToRussian(line)}</p>
-      <p><strong>Prompt:</strong> <em>${prompt}</em></p>
-      <img src="https://via.placeholder.com/400x700.png?text=Scene+${index + 1}" alt="Generated Image" style="width:100%; max-width:400px; border-radius:8px; margin-top:10px;" />
+      <label><strong>Prompt:</strong></label>
+      <input type="text" id="prompt-${index}" value="${prompt}" style="width: 100%; padding: 6px; margin-top: 5px;" />
+      <button onclick="generateImage(${index})" style="margin-top: 10px;">🎨 Сгенерировать изображение</button>
+      <div id="image-${index}" style="margin-top: 10px;"></div>
     `;
     output.appendChild(sceneDiv);
   });
@@ -36,4 +38,31 @@ function generatePrompt(text, format) {
 
 function translateToRussian(text) {
   return "Автоперевод: " + text.split(" ").reverse().join(" ");
+}
+
+// 🧠 Картинка через Hugging Face API
+async function generateImage(index) {
+  const promptInput = document.getElementById(`prompt-${index}`);
+  const prompt = promptInput.value;
+  const imageContainer = document.getElementById(`image-${index}`);
+
+  imageContainer.innerHTML = "⏳ Генерация изображения... (10–20 секунд)";
+
+  const response = await fetch("https://api-inference.huggingface.co/models/CompVis/stable-diffusion-v1-4", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer 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"
+    },
+    body: JSON.stringify({ inputs: prompt }),
+  });
+
+  if (!response.ok) {
+    imageContainer.innerHTML = "❌ Ошибка генерации изображения.";
+    return;
+  }
+
+  const blob = await response.blob();
+  const imageUrl = URL.createObjectURL(blob);
+  imageContainer.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius: 10px;" />`;
 }
